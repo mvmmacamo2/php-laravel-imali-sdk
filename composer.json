@@ -1,0 +1,33 @@
+{
+    "name": "miguelmacamo/payment",
+    "description": "This will allow partners to make payment to i.Mali",
+    "type": "library",
+    "require-dev": {
+        "endroid/qr-code": "4.x-dev"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Miguelmacamo\\Payment\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Miguelmacamo\\Imali\\PaymentServiceProvider"
+            ]
+        }
+    },
+    "authors": [
+        {
+            "name": "Miguel Vasco Macamo",
+            "email": "miguelvascomacamo@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+
+    "require": {
+        "guzzlehttp/guzzle": "7.4.x-dev"
+    }
+}
