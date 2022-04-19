@@ -11,7 +11,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Miguelmacamo\\Imali\\PaymentServiceProvider"
+                "Miguelmacamo\\Payment\\PaymentServiceProvider"
             ]
         }
     },

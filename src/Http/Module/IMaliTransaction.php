@@ -1,6 +1,7 @@
 <?php
 
 namespace Miguelmacamo\Payment\Http\Module;
+namespace Miguelmacamo\Payment\Http\Module;
 
 use Illuminate\Http\Request;
 use Ramsey\Uuid\Uuid;
