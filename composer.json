@@ -2,9 +2,6 @@
     "name": "miguelmacamo/imali",
     "description": "This will allow partners to make payment to i.Mali",
     "type": "library",
-    "require-dev": {
-        "endroid/qr-code": "4.x-dev"
-    },
     "license": "MIT",
     "autoload": {
         "psr-4": {
@@ -25,9 +22,6 @@
         }
     ],
     "minimum-stability": "stable",
-    "prefer-stable": true,
+    "prefer-stable": true
 
-    "require": {
-        "guzzlehttp/guzzle": "7.4.x-dev"
-    }
 }
