@@ -43,5 +43,67 @@ $transaction = new IMaliTransaction();
             $terminalID,
             $terminalChannel,
             $terminalCompanyName);
+```
 
+## Usage: request Payment
+
+```php
+
+$transaction = new IMaliTransaction();
+
+   $result = $transaction->requestPayment(
+            $transactionID,
+            $storeAccountNumber,
+            $customerAccountNumber,
+            $amount,
+            $description,
+            $terminalChannel,
+            $terminalCompanyName,
+            $terminalID
+        );
+```
+
+## Usage: confirm request Payment
+
+```php
+
+$transaction = new IMaliTransaction();
+
+$result = $transaction->makePayment($transactionID, $otp);
+```
+
+## Usage: request Refund Payment
+
+```php
+
+$transaction = new IMaliTransaction();
+
+    $result = $transaction->refundCustomer(
+            $partnerTransactionID,
+            $paymentTransaction,
+            $customerAccountNumber,
+            $storeAccountNumber,
+            $amount,
+            $description,
+            $terminalID,
+            $terminalChannel,
+            $terminalCompanyName,
+        );
+```
+
+## Usage: confirm request Refund Payment
+
+```php
+
+$transaction = new IMaliTransaction();
+
+   $result = $transaction->refundCustomerConfirmation($partnerTransactionID, $otp);
+```
+## Usage: get Static Qrcode
+
+```php
+
+$transaction = new IMaliTransaction();
+
+   $result = $transaction->getQRCODE($accountNumber);
 ```
