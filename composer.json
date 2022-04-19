@@ -1,5 +1,5 @@
 {
-    "name": "miguelmacamo/payment",
+    "name": "miguelmacamo/imali",
     "description": "This will allow partners to make payment to i.Mali",
     "type": "library",
     "require-dev": {
