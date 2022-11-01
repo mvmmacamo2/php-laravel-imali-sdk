@@ -36,9 +36,9 @@ class IMaliTransaction
         $this->production = config('imali.production');
 
         if (!$this->production) {
-            $this->baseURL = "https://paytek-africa.com/imalipartinersapi/public/api/partner/";
+            $this->baseURL = "https://paytek-africa.com/imalipartnersapi/public/api/partner/";
         } else {
-            $this->baseURL = "https://paytek-africa.com/imaliapipartnersprod/public/api/partner/";
+            $this->baseURL = "https://paytek-africa.com/imalipartnersprod/public/api/partner/";
         }
 
     }
