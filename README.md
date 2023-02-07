@@ -12,7 +12,7 @@ $ php artisan migrate
 ```
 
 ### Publish configuration to config folder
-php artisan vendor:publish
+php artisan vendor:publish --tag=imali-config
 
 **Set your key on this file to make requests**
 :file name is imali.php
@@ -20,23 +20,30 @@ php artisan vendor:publish
 ```php
 <?php
 return [
-    'production' => false,        
-    'apiKey' => 'Bearer yourKey'
+    'production' => false,  
+    'database' => false,
+    'apiKey' => 'Bearer yourKey',
+    'localization' => 'en'
 ];
 production 
 false-> test server 
 true to production server
 
+database
+true - will save requests of payments and refunds to your database
+
+localization - allows you to have responses in desired language, you can set en or pt
+
 apiKey should be diferent for test server to production server
 
 ```
-## Usage: generate QRcode
+## Usage: generate dynamic QRcode
 
 ```php
 
 $transaction = new IMaliTransaction();
 
-    $result = $transaction->generatePayment(
+    $result = $transaction->generateTransaction(
             $transactionID,
             $storeAccountNumber,
             $amount,
@@ -51,7 +58,7 @@ $transaction = new IMaliTransaction();
 
 $transaction = new IMaliTransaction();
 
-   $result = $transaction->requestPayment(
+   $result = $transaction->generatePayment(
             $transactionID,
             $storeAccountNumber,
             $customerAccountNumber,
@@ -69,7 +76,7 @@ $transaction = new IMaliTransaction();
 
 $transaction = new IMaliTransaction();
 
-$result = $transaction->makePayment($transactionID, $otp);
+$result = $transaction->confirmPayment($transactionID, $otp);
 ```
 
 ## Usage: request Refund Payment
@@ -78,7 +85,7 @@ $result = $transaction->makePayment($transactionID, $otp);
 
 $transaction = new IMaliTransaction();
 
-    $result = $transaction->refundCustomer(
+    $result = $transaction->requestRefundCustomer(
             $partnerTransactionID,
             $paymentTransaction,
             $customerAccountNumber,
