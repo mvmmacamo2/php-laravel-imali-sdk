@@ -318,58 +318,6 @@ class IMaliTransaction
         return response()->json(json_decode($result, true), $httpcode);
     }
 
-    public function getPayments(int $storeAccountNumber): \Illuminate\Http\JsonResponse
-    {
-        $makePaymentUrl = 'get-store-payments/' . $storeAccountNumber;
-
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
-        curl_setopt($curl, CURLOPT_POST, false);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-        $result = curl_exec($curl);
-        $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        return response()->json(json_decode($result, true), $httpcode);
-    }
-
-    public function getGeneratedPayments(int $storeAccountNumber): \Illuminate\Http\JsonResponse
-    {
-        $makePaymentUrl = 'get-generated-payments/' . $storeAccountNumber;
-
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
-        curl_setopt($curl, CURLOPT_POST, false);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-        $result = curl_exec($curl);
-        $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        return response()->json(json_decode($result, true), $httpcode);
-
-    }
-
-    public function getRefundPayments(int $storeAccountNumber): \Illuminate\Http\JsonResponse
-    {
-        $makePaymentUrl = 'get-store-payments-refunds/' . $storeAccountNumber;
-
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
-        curl_setopt($curl, CURLOPT_POST, false);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-        $result = curl_exec($curl);
-        $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        return response()->json(json_decode($result, true), $httpcode);
-    }
-
     public function getQRCODE($storeAccountNumber): \Illuminate\Http\JsonResponse
     {
         $makePaymentUrl = 'get-qrcode/' . $storeAccountNumber;
