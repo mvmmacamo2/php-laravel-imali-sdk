@@ -1,10 +1,8 @@
 <?php
 
 namespace Miguelmacamo\Payment\Http\Module;
-namespace Miguelmacamo\Payment\Http\Module;
 
-use Illuminate\Http\Request;
-use Ramsey\Uuid\Uuid;
+namespace Miguelmacamo\Payment\Http\Module;
 use DB;
 
 class IMaliTransaction
@@ -24,33 +22,58 @@ class IMaliTransaction
     private $transactionID;
     private $terminalCompanyName;
     private $terminalChannel;
-    private $token;
     private $partnerTransactionID;
     private $paymentTransaction;
     private $production;
+    private $localization;
+    private $headers;
+    private $database;
 
 
     public function __construct()
     {
         $this->apiKey = config('imali.apiKey');
         $this->production = config('imali.production');
+        $this->localization = config('imali.localization');
+        $this->database = config('imali.database');
+
+        $this->headers = array(
+            'Authorization: ' . $this->apiKey,
+            'Accept: application/json',
+            'X-localization: ' . $this->localization
+        );
 
         if (!$this->production) {
             $this->baseURL = "https://paytek-africa.com/imalipartnersapi/public/api/partner/";
         } else {
             $this->baseURL = "https://paytek-africa.com/imalipartnersprod/public/api/partner/";
         }
+    }
+    public function checkTransaction(string $transaction): \Illuminate\Http\JsonResponse
+    {
+        $makePaymentUrl = 'check-transaction/' . $transaction;
 
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
+        curl_setopt($curl, CURLOPT_POST, false);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        $result = curl_exec($curl);
+        $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        return response()->json(json_decode($result, true), $httpcode);
     }
 
-    public function requestPayment(string $transactionID,
-                                   int    $storeAccountNumber,
-                                   int    $customerAccountNumber,
-                                   float  $amount,
-                                   string $description,
-                                   string $terminalChannel,
-                                   string $terminalCompanyName,
-                                   string $terminalID)
+    public function generatePayment(string $transactionID,
+                                    int    $storeAccountNumber,
+                                    int    $customerAccountNumber,
+                                    float  $amount,
+                                    string $description,
+                                    string $terminalChannel,
+                                    string $terminalCompanyName,
+                                    string $terminalID): \Illuminate\Http\JsonResponse
     {
         $this->description = $description;
         $this->storeAccountNumber = $storeAccountNumber;
@@ -61,8 +84,6 @@ class IMaliTransaction
         $this->terminalChannel = $terminalChannel;
         $this->terminalCompanyName = $terminalCompanyName;
 
-
-        $headers = array('Authorization: ' . $this->apiKey, 'Accept: application/json');
         $makePaymentUrl = 'generate-payment';
 
         $data = [
@@ -80,7 +101,7 @@ class IMaliTransaction
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
@@ -88,8 +109,7 @@ class IMaliTransaction
         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
-
-        if ($httpcode == 200 || $httpcode == 201) {
+        if (($httpcode == 200 || $httpcode == 201) && $this->database) {
 
             DB::transaction(function () {
 
@@ -106,19 +126,17 @@ class IMaliTransaction
                     'updated_at' => now()
                 ]);
 
-            }, 5);
-
+            }, 2);
         }
 
         return response()->json(json_decode($result, true), $httpcode);
     }
 
-    public function makePayment($partnerTransactionID, $token)
+    public function confirmPayment($partnerTransactionID, $token)
     {
         $this->token = $token;
-        $this->partnerTransactionID = $partnerTransactionID;
 
-        $headers = array('Authorization: ' . $this->apiKey, 'Accept: application/json');
+        $this->partnerTransactionID = $partnerTransactionID;
 
         $makePaymentUrl = 'confirm-payment';
 
@@ -127,7 +145,7 @@ class IMaliTransaction
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $valuesToAdd);
@@ -135,30 +153,28 @@ class IMaliTransaction
         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
-        if ($httpcode == 200 || $httpcode == 201) {
+        if (($httpcode == 200 || $httpcode == 201) && $this->database) {
 
             DB::transaction(function () {
-
                 DB::table('imali_payments')
                     ->where('transaction_id', $this->partnerTransactionID)
-                    ->update(['status' => 'succeso']);
+                    ->update(['status' => 'success']);
 
             }, 5);
         }
-
         return response()->json(json_decode($result, true), $httpcode);
 
     }
 
-    public function refundCustomer(string $partnerTransactionID,
-                                   string $paymentTransaction,
-                                   int $customerAccountNumber,
-                                   int $storeAccountNumber,
-                                   float $amount,
-                                   string $description,
-                                   string $terminalID,
-                                   string $terminalChannel,
-                                   string $terminalCompanyName)
+    public function requestRefundCustomer(string $partnerTransactionID,
+                                          string $paymentTransaction,
+                                          int    $customerAccountNumber,
+                                          int    $storeAccountNumber,
+                                          float  $amount,
+                                          string $description,
+                                          string $terminalID,
+                                          string $terminalChannel,
+                                          string $terminalCompanyName): \Illuminate\Http\JsonResponse
     {
 
         $this->amount = $amount;
@@ -171,9 +187,7 @@ class IMaliTransaction
         $this->customerAccountNumber = $customerAccountNumber;
         $this->storeAccountNumber = $storeAccountNumber;
 
-        $headers = array('Authorization: ' . $this->apiKey, 'Accept: application/json');
-
-        $makePaymentUrl = 'refund-payment';
+        $makePaymentUrl = 'refund-customer';
 
         $data = [
             'amount' => $amount,
@@ -190,7 +204,7 @@ class IMaliTransaction
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
@@ -198,23 +212,23 @@ class IMaliTransaction
         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
-        DB::transaction(function () {
-            DB::table('imali_refunds')->insert([
-                'store_account_number' => $this->storeAccountNumber,
-                'customer_account_number' => $this->customerAccountNumber,
-                'amount' => $this->amount,
-                'description' => $this->description,
-                'payment_transaction' => $this->paymentTransaction,
-                'partner_transaction_id' => $this->partnerTransactionID,
-                'terminalCompanyName' => $this->terminalCompanyName,
-                'terminalChannel' => $this->terminalChannel,
-                'terminalID' => $this->terminalID,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-
-        }, 5);
-
+        if (($httpcode == 200 || $httpcode == 201) && $this->database) {
+            DB::transaction(function () {
+                DB::table('imali_refunds')->insert([
+                    'store_account_number' => $this->storeAccountNumber,
+                    'customer_account_number' => $this->customerAccountNumber,
+                    'amount' => $this->amount,
+                    'description' => $this->description,
+                    'payment_transaction' => $this->paymentTransaction,
+                    'partner_transaction_id' => $this->partnerTransactionID,
+                    'terminalCompanyName' => $this->terminalCompanyName,
+                    'terminalChannel' => $this->terminalChannel,
+                    'terminalID' => $this->terminalID,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }, 5);
+        }
         return response()->json(json_decode($result, true), $httpcode);
     }
 
@@ -222,7 +236,6 @@ class IMaliTransaction
     {
         $this->partnerTransactionID = $partnerTransactionID;
 
-        $headers = array('Authorization: ' . $this->apiKey, 'Accept: application/json');
         $makePaymentUrl = 'refund-confirmation';
 
         $data = ['partner_transaction_id' => $partnerTransactionID, 'token_otp' => $otp];
@@ -231,7 +244,7 @@ class IMaliTransaction
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
@@ -239,23 +252,25 @@ class IMaliTransaction
         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
-        DB::transaction(function () {
+        if (($httpcode == 200 || $httpcode == 201) && $this->database) {
+            DB::transaction(function () {
 
-            DB::table('imali_refunds')
-                ->where('partner_transaction_id', $this->partnerTransactionID)
-                ->update(['status' => 'succesp', 'updated_at' => now()]);
-        }, 5);
+                DB::table('imali_refunds')
+                    ->where('partner_transaction_id', $this->partnerTransactionID)
+                    ->update(['status' => 'success', 'updated_at' => now()]);
+            }, 2);
+        }
 
         return response()->json(json_decode($result, true), $httpcode);
 
     }
 
-    public function generatePayment(string $transactionID,
-                                    int    $storeAccountNumber,
-                                    float  $amount,
-                                    string $terminalID,
-                                    string $terminalChannel,
-                                    string $terminalCompanyName)
+    public function generateTransaction(string $transactionID,
+                                        int    $storeAccountNumber,
+                                        float  $amount,
+                                        string $terminalID,
+                                        string $terminalChannel,
+                                        string $terminalCompanyName): \Illuminate\Http\JsonResponse
     {
         $this->storeAccountNumber = $storeAccountNumber;
         $this->transactionID = $transactionID;
@@ -263,9 +278,6 @@ class IMaliTransaction
         $this->terminalID = $terminalID;
         $this->terminalChannel = $terminalChannel;
         $this->terminalCompanyName = $terminalCompanyName;
-
-
-        $headers = array('Authorization: ' . $this->apiKey, 'Accept: application/json');
 
         $makePaymentUrl = 'generate-transaction';
 
@@ -281,7 +293,7 @@ class IMaliTransaction
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
@@ -290,30 +302,30 @@ class IMaliTransaction
         curl_close($curl);
 
         $this->result = $result->original;
-        DB::transaction(function () {
 
-            DB::table()->insert([
-                'transaction' => $this->result->transaction,
-                'amount' => $this->result->amount,
-                'account_number' => $this->result->account_number,
-                'address_store' => $this->result->address_store,
-                'institution' => $this->result->institution,
-                'promo' => $this->result->promo,
-            ]);
-        }, 5);
+        if (($httpcode == 200 || $httpcode == 201) && $this->database) {
+            DB::transaction(function () {
+                DB::table()->insert([
+                    'transaction' => $this->result->transaction,
+                    'amount' => $this->result->amount,
+                    'account_number' => $this->result->account_number,
+                    'address_store' => $this->result->address_store,
+                    'institution' => $this->result->institution,
+                    'promo' => $this->result->promo,
+                ]);
+            }, 2);
+        }
         return response()->json(json_decode($result, true), $httpcode);
     }
 
-    public function getPayments(int $storeAccountNumber)
+    public function getPayments(int $storeAccountNumber): \Illuminate\Http\JsonResponse
     {
-        $headers = array('Authorization: ' . $this->apiKey, 'Accept: application/json');
-
         $makePaymentUrl = 'get-store-payments/' . $storeAccountNumber;
 
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
         curl_setopt($curl, CURLOPT_POST, false);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         $result = curl_exec($curl);
@@ -323,16 +335,14 @@ class IMaliTransaction
         return response()->json(json_decode($result, true), $httpcode);
     }
 
-    public function getGeneratedPayments(int $storeAccountNumber)
+    public function getGeneratedPayments(int $storeAccountNumber): \Illuminate\Http\JsonResponse
     {
-        $headers = array('Authorization: ' . $this->apiKey, 'Accept: application/json');
-
         $makePaymentUrl = 'get-generated-payments/' . $storeAccountNumber;
 
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
         curl_setopt($curl, CURLOPT_POST, false);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         $result = curl_exec($curl);
@@ -343,16 +353,14 @@ class IMaliTransaction
 
     }
 
-    public function getRefundPayments(int $storeAccountNumber)
+    public function getRefundPayments(int $storeAccountNumber): \Illuminate\Http\JsonResponse
     {
-        $headers = array('Authorization: ' . $this->apiKey, 'Accept: application/json');
-
         $makePaymentUrl = 'get-store-payments-refunds/' . $storeAccountNumber;
 
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
         curl_setopt($curl, CURLOPT_POST, false);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         $result = curl_exec($curl);
@@ -360,19 +368,16 @@ class IMaliTransaction
         curl_close($curl);
 
         return response()->json(json_decode($result, true), $httpcode);
-
     }
 
-    public function getQRCODE($storeAccountNumber)
+    public function getQRCODE($storeAccountNumber): \Illuminate\Http\JsonResponse
     {
-        $headers = array('Authorization: ' . $this->apiKey, 'Accept: application/json');
-
         $makePaymentUrl = 'get-qrcode/' . $storeAccountNumber;
 
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->baseURL . $makePaymentUrl);
         curl_setopt($curl, CURLOPT_POST, false);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         $result = curl_exec($curl);
@@ -380,6 +385,5 @@ class IMaliTransaction
         curl_close($curl);
 
         return response()->json(json_decode($result, true), $httpcode);
-
     }
 }

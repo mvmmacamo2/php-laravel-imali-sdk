@@ -9,10 +9,10 @@ class PaymentServiceProvider extends ServiceProvider
 
     public function boot()
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/routes/api.php');
+//        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+//        $this->loadRoutesFrom(__DIR__ . '/routes/api.php');
 //        $this->loadViewsFrom(__DIR__.'/resources/views', 'courier');
-        $this->loadViewsFrom(__DIR__ . '/resources/views', 'imali');
+//        $this->loadViewsFrom(__DIR__ . '/resources/views', 'imali');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
 //        https://github.com/endroid/qr-code
@@ -23,7 +23,7 @@ class PaymentServiceProvider extends ServiceProvider
 
         $this->publishes([
             __DIR__ . '/config/imali.php' => config_path('imali.php'),
-        ]);
+        ], 'imali-config');
         // MAIN REPOSITORY FOR TESTS
 
 //        $this->publishes([

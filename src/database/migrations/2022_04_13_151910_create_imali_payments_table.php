@@ -20,7 +20,7 @@ class CreateImaliPaymentsTable extends Migration
             $table->double('amount')->default(0);
             $table->string('description')->nullable();
             $table->string('transaction_id')->nullable();
-            $table->string('status')->nullable()->default('pendente');
+            $table->string('status')->nullable()->default('pending');
             $table->string('terminalID')->nullable();
             $table->string('terminalChannel')->nullable();
             $table->string('terminalCompanyName')->nullable();

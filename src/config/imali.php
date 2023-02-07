@@ -2,5 +2,7 @@
 
 return [
     'production' => false,
-    'apiKey' => 'Bearer '
+    'database' => false,
+    'apiKey' => 'Bearer ',
+    'localization' => 'en'
 ];
