@@ -40,7 +40,7 @@ class IMaliTransaction
         $this->headers = array(
             'Authorization: ' . $this->apiKey,
             'Accept: application/json',
-            'X-localization: ' . $this->localization
+            'X-localization: ' . strtolower($this->localization)
         );
 
         if (!$this->production) {
