@@ -301,7 +301,7 @@ class IMaliTransaction
         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
-        $this->result = $result->original;
+        $this->result = $result;
 
         if (($httpcode == 200 || $httpcode == 201) && $this->database) {
             DB::transaction(function () {
